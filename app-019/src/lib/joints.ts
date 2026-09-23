@@ -1,26 +1,42 @@
 // 其余榫卯类型：搭接（lap）、圆木榫/饼干榫定位孔（dowel）、拼板（panel-glue）
-import type { Fit } from '../types'
 import { round01 } from './format'
 
 // —— 搭接 / 企口 ——
 export interface LapInput {
-  thickness: number // 板厚（两板同厚）
-  width: number     // 搭接长度方向用料宽
+  thickness: number  // 板厚（两板同厚）
+  width: number      // 配合板宽（决定搭接长度）
   kerf: number
+  fitDeltaMm: number // 配合让刀（查配合余量表：紧=正，松=负）
 }
 export interface LapResult {
-  depthEach: number // 每块切深 = 料厚/2 ± 让刀
+  depthEach: number // 每块切深 = (料厚 − 让刀)/2
   lapLength: number // 搭接长度 = 配合板宽
+  remaining: number // 半搭后每块剩余料厚 = 料厚 − 切深
   warnings: string[]
 }
-export function computeLap(input: LapInput, fit: Fit): LapResult {
-  const depthEach = round01(input.thickness / 2)
+
+/** 半搭后每块至少保留的料厚 mm（再薄槽底易劈裂） */
+export const LAP_MIN_REMAIN = 6
+
+export function computeLap(input: LapInput): LapResult {
+  const { thickness, fitDeltaMm } = input
   const warnings: string[] = []
-  if (fit === 'loose') {
-    warnings.push('松配合请多留胶层')
+  // 两块切深之和 = 料厚 − 让刀：紧配（让刀>0）少切留过盈，松配（让刀<0）多切留胶层
+  const depthEach = round01((thickness - fitDeltaMm) / 2)
+  const remaining = round01(thickness - depthEach)
+  if (remaining < LAP_MIN_REMAIN) {
+    warnings.push(
+      `半搭后每块仅剩 ${remaining}mm，低于 ${LAP_MIN_REMAIN}mm 安全余量，槽底易劈裂；建议加厚木料或改用其他榫卯`,
+    )
+  }
+  if (fitDeltaMm > 0) {
+    warnings.push('紧配合：两块切深之和已留过盈量，装配需轻敲就位，必要时刮修槽底')
+  }
+  if (fitDeltaMm < 0) {
+    warnings.push('松配合：切深已加深，为胶层留出余量')
   }
   void input.kerf
-  return { depthEach, lapLength: round01(input.thickness), warnings }
+  return { depthEach, lapLength: round01(input.width), remaining, warnings }
 }
 
 // —— 圆木榫 / 饼干榫定位孔 ——

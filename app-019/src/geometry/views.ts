@@ -4,7 +4,7 @@ import type { Joint, JointKind } from '../types'
 import type { DovetailResult } from '../lib/dovetail'
 import type { TenonResult } from '../lib/tenon'
 import type { LapResult, DowelResult, PanelResult } from '../lib/joints'
-import { fmtDrawing } from '../lib/format'
+import { fmt01, fmtDrawing } from '../lib/format'
 
 export type ViewId = 'front' | 'top' | 'side'
 
@@ -216,20 +216,33 @@ function tenonViews(p: Joint['params'], tn: TenonResult): ViewModel[] {
 function lapViews(p: Joint['params'], lap: LapResult): ViewModel[] {
   const W = p.boardA.width
   const t = p.boardA.thickness
+  const { depthEach, lapLength, remaining } = lap
+  // 切深/余料标注用 0.1mm：配合让刀（±0.2~0.4）小于 0.5 标注步进，取整后紧/松配会显示成一样
+
+  // 正视图：板端面（W × t），台阶线 = 槽底线（距顶面 = 余料）+ 台阶右端竖线（肩线）
   const front = base('front', '正视图 · 半搭端面', W, t)
   rect(front, 0, 0, W, t)
-  rect(front, 0, t / 2, lap.lapLength, t / 2, 'thin')
+  front.lines.push(
+    { x1: 0, y1: remaining, x2: lapLength, y2: remaining, cls: 'thin' },
+    { x1: lapLength, y1: remaining, x2: lapLength, y2: t, cls: 'thin' },
+  )
   hdim(front, 0, W, t + 12, `板宽 ${fmtDrawing(W)}`)
-  hdim(front, 0, lap.lapLength, -10, `搭接长 ${fmtDrawing(lap.lapLength)}`)
+  hdim(front, 0, lapLength, -10, `搭接长 ${fmtDrawing(lapLength)}`)
+  vdim(front, remaining, t, -12, `切深 ${fmt01(depthEach)}`)
 
+  // 俯视图：搭接区划线（肩线位置 = 搭接长）
   const top = base('top', '俯视图 · 搭接区划线', W, LJ)
   rect(top, 0, 0, W, LJ)
-  top.lines.push({ x1: lap.lapLength, y1: 0, x2: lap.lapLength, y2: LJ, cls: 'cut' })
+  top.lines.push({ x1: lapLength, y1: 0, x2: lapLength, y2: LJ, cls: 'cut' })
   hdim(top, 0, W, LJ + 12, `板宽 ${fmtDrawing(W)}`)
+  hdim(top, 0, lapLength, -10, `搭接长 ${fmtDrawing(lapLength)}`)
 
-  const side = base('side', '侧视图 · 切深', t, LJ)
+  // 侧视图：厚 × 截取段，槽底线 + 余料/切深双向标注（切完还剩多少直接可读）
+  const side = base('side', '侧视图 · 切深与余料', t, LJ)
   rect(side, 0, 0, t, LJ)
-  vdim(side, 0, lap.depthEach, -12, `切深 ${fmtDrawing(lap.depthEach)}`)
+  side.lines.push({ x1: remaining, y1: 0, x2: remaining, y2: LJ, cls: 'thin' })
+  hdim(side, 0, remaining, -10, `余料 ${fmt01(remaining)}`)
+  hdim(side, remaining, t, LJ + 12, `切深 ${fmt01(depthEach)}`)
   return [front, top, side]
 }
 

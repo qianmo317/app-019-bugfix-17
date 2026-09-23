@@ -53,10 +53,12 @@ export function computeJoint(joint: Joint): JointResult {
       break
     }
     case 'lap': {
-      const lap = computeLap(
-        { thickness: params.boardA.thickness, width: params.boardA.width, kerf: params.kerfMm },
-        params.fit,
-      )
+      const lap = computeLap({
+        thickness: params.boardA.thickness,
+        width: params.boardB.width, // 配合板宽 → 搭接长度
+        kerf: params.kerfMm,
+        fitDeltaMm: table[params.wood][params.fit],
+      })
       result.lap = lap
       result.warnings = lap.warnings
       break

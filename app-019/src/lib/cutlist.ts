@@ -2,7 +2,8 @@
 import type { Joint } from '../types'
 import type { DovetailResult } from './dovetail'
 import type { TenonResult } from './tenon'
-import { fmtDrawing } from './format'
+import type { LapResult } from './joints'
+import { fmt01, fmtDrawing } from './format'
 
 export interface CutStep {
   no: number
@@ -16,7 +17,7 @@ export interface CutList {
   cautions: string[]
 }
 
-export function buildCutList(joint: Joint, dt?: DovetailResult, tn?: TenonResult): CutList {
+export function buildCutList(joint: Joint, dt?: DovetailResult, tn?: TenonResult, lap?: LapResult): CutList {
   const kerf = joint.params.kerfMm
   const { kind } = joint
   const cautions: string[] = [
@@ -63,12 +64,30 @@ export function buildCutList(joint: Joint, dt?: DovetailResult, tn?: TenonResult
   if (kind === 'lap') {
     return {
       boardA: [
-        { no: 1, action: '画线', detail: '半搭深度线 = 料厚/2（含配合让刀，见参数）' },
+        {
+          no: 1,
+          action: '画线',
+          detail: lap
+            ? `按图纸画搭接区：搭接长 ${fmtDrawing(lap.lapLength)}mm，切深 ${fmt01(lap.depthEach)}mm（含配合让刀）`
+            : '半搭深度线 = 料厚/2（含配合让刀，见参数）',
+        },
         { no: 2, action: '锯肩', detail: '先锯深度肩线，深度尺校准' },
-        { no: 3, action: '剔槽', detail: '锯多条松料后凿平槽底，深度误差 ≤0.2mm' },
+        {
+          no: 3,
+          action: '剔槽',
+          detail: lap
+            ? `锯多条松料后凿平槽底，槽底余料 ${fmt01(lap.remaining)}mm，深度误差 ≤0.2mm`
+            : '锯多条松料后凿平槽底，深度误差 ≤0.2mm',
+        },
       ],
       boardB: [
-        { no: 1, action: '重复对板', detail: '另一块板同样半搭，两板切深之和 = 料厚 ± 配合让刀' },
+        {
+          no: 1,
+          action: '重复对板',
+          detail: lap
+            ? `另一块板同样半搭（切深 ${fmt01(lap.depthEach)}mm），两板切深之和 = 料厚 − 配合让刀（紧配少切、松配多切）`
+            : '另一块板同样半搭，两板切深之和 = 料厚 ± 配合让刀',
+        },
       ],
       cautions: [...cautions, '半搭槽底必须与基准面平行，否则装后有缝'],
     }
