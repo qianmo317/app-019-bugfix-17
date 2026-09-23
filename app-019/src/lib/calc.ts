@@ -54,8 +54,9 @@ export function computeJoint(joint: Joint): JointResult {
     }
     case 'lap': {
       const lap = computeLap(
-        { thickness: params.boardA.thickness, width: params.boardA.width, kerf: params.kerfMm },
+        { thickness: params.boardA.thickness, width: params.boardB.width, kerf: params.kerfMm },
         params.fit,
+        table[params.wood][params.fit],
       )
       result.lap = lap
       result.warnings = lap.warnings

@@ -5,22 +5,29 @@ import { round01 } from './format'
 // —— 搭接 / 企口 ——
 export interface LapInput {
   thickness: number // 板厚（两板同厚）
-  width: number     // 搭接长度方向用料宽
+  width: number     // 配合板（件 B）板宽：搭接长度方向的用料宽
   kerf: number
 }
 export interface LapResult {
-  depthEach: number // 每块切深 = 料厚/2 ± 让刀
+  depthEach: number // 每块切深 = 料厚/2 − 配合让刀
   lapLength: number // 搭接长度 = 配合板宽
   warnings: string[]
 }
-export function computeLap(input: LapInput, fit: Fit): LapResult {
-  const depthEach = round01(input.thickness / 2)
+export function computeLap(input: LapInput, fit: Fit, fitDeltaMm: number): LapResult {
+  const t = input.thickness
+  // 紧配少切、松配多切：两块切深相同，切深之和 = 料厚 − 2×让刀（装后搭接处总厚 = 料厚 + 2×让刀）
+  const depthEach = round01(t / 2 - fitDeltaMm)
+  const lapLength = round01(input.width)
   const warnings: string[] = []
+  const remain = round01(t - depthEach)
+  if (remain < 3) {
+    warnings.push(`半搭后每块余料仅 ${remain}mm，低于 3mm 易崩缺；建议板厚不低于 6mm`)
+  }
   if (fit === 'loose') {
     warnings.push('松配合请多留胶层')
   }
   void input.kerf
-  return { depthEach, lapLength: round01(input.thickness), warnings }
+  return { depthEach, lapLength, warnings }
 }
 
 // —— 圆木榫 / 饼干榫定位孔 ——

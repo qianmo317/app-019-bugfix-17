@@ -218,7 +218,11 @@ function lapViews(p: Joint['params'], lap: LapResult): ViewModel[] {
   const t = p.boardA.thickness
   const front = base('front', '正视图 · 半搭端面', W, t)
   rect(front, 0, 0, W, t)
-  rect(front, 0, t / 2, lap.lapLength, t / 2, 'thin')
+  // 搭接台阶与计算结果同源：横线 = 切深线（y = 切深），竖线 = 台阶肩线（x = 搭接长）
+  front.lines.push(
+    { x1: 0, y1: lap.depthEach, x2: lap.lapLength, y2: lap.depthEach, cls: 'cut' },
+    { x1: lap.lapLength, y1: lap.depthEach, x2: lap.lapLength, y2: t, cls: 'cut' },
+  )
   hdim(front, 0, W, t + 12, `板宽 ${fmtDrawing(W)}`)
   hdim(front, 0, lap.lapLength, -10, `搭接长 ${fmtDrawing(lap.lapLength)}`)
 
@@ -227,9 +231,12 @@ function lapViews(p: Joint['params'], lap: LapResult): ViewModel[] {
   top.lines.push({ x1: lap.lapLength, y1: 0, x2: lap.lapLength, y2: LJ, cls: 'cut' })
   hdim(top, 0, W, LJ + 12, `板宽 ${fmtDrawing(W)}`)
 
+  // 侧视图：x 轴 = 料厚方向；切深线一侧为切除部分，另一侧为剩余料厚
   const side = base('side', '侧视图 · 切深', t, LJ)
   rect(side, 0, 0, t, LJ)
-  vdim(side, 0, lap.depthEach, -12, `切深 ${fmtDrawing(lap.depthEach)}`)
+  side.lines.push({ x1: lap.depthEach, y1: 0, x2: lap.depthEach, y2: LJ, cls: 'thin' })
+  hdim(side, 0, lap.depthEach, -10, `切深 ${fmtDrawing(lap.depthEach)}`)
+  hdim(side, lap.depthEach, t, LJ + 12, `剩余 ${fmtDrawing(t - lap.depthEach)}`)
   return [front, top, side]
 }
 

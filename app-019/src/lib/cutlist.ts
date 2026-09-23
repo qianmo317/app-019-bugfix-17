@@ -63,12 +63,12 @@ export function buildCutList(joint: Joint, dt?: DovetailResult, tn?: TenonResult
   if (kind === 'lap') {
     return {
       boardA: [
-        { no: 1, action: '画线', detail: '半搭深度线 = 料厚/2（含配合让刀，见参数）' },
+        { no: 1, action: '画线', detail: '半搭深度线 = 料厚/2 − 配合让刀（紧配少切、松配多切，切深值见图纸）' },
         { no: 2, action: '锯肩', detail: '先锯深度肩线，深度尺校准' },
         { no: 3, action: '剔槽', detail: '锯多条松料后凿平槽底，深度误差 ≤0.2mm' },
       ],
       boardB: [
-        { no: 1, action: '重复对板', detail: '另一块板同样半搭，两板切深之和 = 料厚 ± 配合让刀' },
+        { no: 1, action: '重复对板', detail: '另一块板同样半搭，两块切深之和 = 料厚 − 2×配合让刀' },
       ],
       cautions: [...cautions, '半搭槽底必须与基准面平行，否则装后有缝'],
     }
